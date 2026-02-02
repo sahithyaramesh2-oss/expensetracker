@@ -11,6 +11,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log("Starting SpendWise Server...");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-123';
@@ -22,7 +24,9 @@ app.use(bodyParser.json());
 // Database Setup
 const { verbose } = sqlite3;
 const sqlite = verbose();
-const db = new sqlite.Database('./expenses.db', (err) => {
+const dbPath = path.join(__dirname, '../expenses.db');
+console.log(`Connecting to database at: ${dbPath}`);
+const db = new sqlite.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err.message);
     } else {
