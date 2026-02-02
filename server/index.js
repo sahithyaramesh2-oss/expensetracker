@@ -1,5 +1,6 @@
 import express from 'express';
-import sqlite3 from 'sqlite3';
+import sqlite3pkg from 'sqlite3';
+const sqlite3 = sqlite3pkg.verbose();
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import bcrypt from 'bcryptjs';
@@ -21,12 +22,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-123';
 app.use(cors());
 app.use(bodyParser.json());
 
+// Health Check for Render
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 // Database Setup
-const { verbose } = sqlite3;
-const sqlite = verbose();
 const dbPath = path.join(__dirname, '../expenses.db');
 console.log(`Connecting to database at: ${dbPath}`);
-const db = new sqlite.Database(dbPath, (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err.message);
     } else {
@@ -214,6 +216,6 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is LIVE on port ${PORT}`);
 });
