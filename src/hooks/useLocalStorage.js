@@ -32,7 +32,7 @@ function useLocalStorage(key, initialValue) {
 
     useEffect(() => {
         setStoredValue(readValue());
-    }, []);
+    }, [key]);
 
     return [storedValue, setValue];
 }

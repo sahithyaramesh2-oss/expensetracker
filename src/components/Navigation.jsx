@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 function Navigation() {
     return (
@@ -11,6 +11,10 @@ function Navigation() {
             <NavLink to="/add" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                 <span>➕</span>
                 <small>Add</small>
+            </NavLink>
+            <NavLink to="/smart-capture" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+                <span>✨</span>
+                <small>Smart</small>
             </NavLink>
             <NavLink to="/history" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                 <span>🧾</span>

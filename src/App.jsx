@@ -7,7 +7,11 @@ import ExpenseList from './components/ExpenseList';
 import Analytics from './components/Analytics';
 import AppSettings from './components/AppSettings';
 import BudgetSettings from './components/BudgetSettings';
+import SmartExpenseCapture from './components/SmartExpenseCapture';
 import SMSImporter from './components/SMSImporter';
+
+import { useAuth } from './context/AuthContext';
+import AuthPage from './components/AuthPage';
 
 // Page Wrappers
 const HomePage = () => (
@@ -45,19 +49,34 @@ const SettingsPage = () => (
     </div>
 );
 
-const SMSImportPage = () => (
+const SmartCapturePage = () => (
     <div className="page-container">
-        <h2>Import from SMS</h2>
-        <SMSImporter />
+        <h2>Smart Expense Capture</h2>
+        <SmartExpenseCapture />
     </div>
 );
 
 function App() {
+    const { user, loading, logout } = useAuth();
+
+    if (loading) {
+        return <div className="loading-screen">Loading...</div>;
+    }
+
+    if (!user) {
+        return <AuthPage />;
+    }
+
     return (
         <Router>
             <div className="app-container">
                 <header className="app-header">
-                    <h1>Expense Tracker</h1>
+                    <div className="header-top">
+                        <h1>SpendWise</h1>
+                        <button onClick={logout} className="logout-btn" title="Sign Out">
+                            <span>👋 Logout</span>
+                        </button>
+                    </div>
                 </header>
 
                 <main className="main-content">
@@ -67,7 +86,7 @@ function App() {
                         <Route path="/history" element={<HistoryPage />} />
                         <Route path="/analytics" element={<AnalyticsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/sms-import" element={<SMSImportPage />} />
+                        <Route path="/smart-capture" element={<SmartCapturePage />} />
                     </Routes>
                 </main>
 
@@ -78,3 +97,4 @@ function App() {
 }
 
 export default App
+

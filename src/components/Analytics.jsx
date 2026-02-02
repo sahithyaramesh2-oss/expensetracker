@@ -6,12 +6,19 @@ const COLORS = ['#BB86FC', '#03DAC6', '#CF6679', '#FFB74D', '#4DB6AC', '#7986CB'
 
 function Analytics() {
     const { expenses, formatCurrency } = useExpenses();
+    const [view, setView] = React.useState('expense'); // 'expense' or 'income'
 
-    if (!expenses.length) return <div className="empty-state">Add expenses to see analytics!</div>;
+    if (!expenses.length) return <div className="empty-state">Add transactions to see analytics!</div>;
+
+    // Filter data based on view
+    const filteredExpenses = expenses.filter(e => {
+        if (view === 'expense') return e.type === 'expense' || e.type === 'refund';
+        return e.type === 'income';
+    });
 
     // 1. Category Data for Pie Chart
-    const categoryData = Object.values(expenses.reduce((acc, curr) => {
-        if (curr.type === 'transfer') return acc; // Skip transfers in category split
+    const categoryData = Object.values(filteredExpenses.reduce((acc, curr) => {
+        if (curr.type === 'transfer') return acc;
         if (!acc[curr.category]) acc[curr.category] = { name: curr.category, value: 0 };
         acc[curr.category].value += curr.amount;
         return acc;
@@ -25,16 +32,35 @@ function Analytics() {
     }).reverse();
 
     const dailyData = last7Days.map(date => {
-        const dayTotal = expenses
+        const dayTotal = filteredExpenses
             .filter(e => e.date === date && e.type !== 'transfer')
             .reduce((sum, e) => sum + e.amount, 0);
         return { name: new Date(date).toLocaleDateString(undefined, { weekday: 'short' }), amount: dayTotal };
     });
 
+    const chartColor = view === 'expense' ? '#CF6679' : '#03DAC6';
+
     return (
         <div className="analytics-container">
+            <div className="view-toggle" style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                <button
+                    className={`toggle-btn ${view === 'expense' ? 'active' : ''}`}
+                    onClick={() => setView('expense')}
+                    style={{ flex: 1 }}
+                >
+                    Expenses
+                </button>
+                <button
+                    className={`toggle-btn ${view === 'income' ? 'active' : ''}`}
+                    onClick={() => setView('income')}
+                    style={{ flex: 1 }}
+                >
+                    Incomes
+                </button>
+            </div>
+
             <div className="card chart-card">
-                <h3>Spending by Category</h3>
+                <h3>{view === 'expense' ? 'Spending' : 'Earnings'} by Category</h3>
                 <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer>
                         <PieChart>
@@ -62,7 +88,7 @@ function Analytics() {
             </div>
 
             <div className="card chart-card">
-                <h3>Last 7 Days Trend</h3>
+                <h3>{view === 'expense' ? '7-Day Outflow' : '7-Day Inflow'}</h3>
                 <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer>
                         <BarChart data={dailyData}>
@@ -72,7 +98,7 @@ function Analytics() {
                                 formatter={(value) => formatCurrency(value)}
                                 contentStyle={{ backgroundColor: '#1E1E1E', border: '1px solid #333' }}
                             />
-                            <Bar dataKey="amount" fill="#03DAC6" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="amount" fill={chartColor} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

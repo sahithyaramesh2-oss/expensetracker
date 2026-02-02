@@ -5,15 +5,19 @@ import QRScanner from './QRScanner';
 import PaymentModal from './PaymentModal';
 
 function ExpenseForm() {
-    const { addExpense, checkBudgetSafety, categories } = useExpenses();
+    const { categories, addExpense, checkBudgetSafety, accounts } = useExpenses();
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('Food');
+    const [category, setCategory] = useState(categories[0]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [isTransfer, setIsTransfer] = useState(false);
+    const [txnType, setTxnType] = useState('expense'); // expense, income, transfer
+    const [accountId, setAccountId] = useState('acc_bank');
     const [warning, setWarning] = useState(null);
     const [showScanner, setShowScanner] = useState(false);
     const [paymentModalData, setPaymentModalData] = useState(null);
+
+    const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Cashback', 'Other'];
+    const REFUND_CATEGORIES = ['Lent to Friend', 'Product Return', 'Security Deposit', 'Loan', 'Other'];
 
     // Parse UPI URL
     const parseUPI = (url) => {
@@ -75,7 +79,8 @@ function ExpenseForm() {
             amount: parseFloat(amount) || 0,
             category: 'Bills', // Default for UPI
             date: new Date().toISOString().split('T')[0],
-            type: 'expense'
+            type: 'expense',
+            accountId
         });
 
         // Trigger UPI Intent
@@ -90,7 +95,7 @@ function ExpenseForm() {
         if (!paymentModalData) return;
         const { title, amount } = paymentModalData;
 
-        setIsTransfer(true);
+        setTxnType('transfer');
         setTitle(title);
         setAmount(amount);
         // Validate amount for budget safety
@@ -119,18 +124,27 @@ function ExpenseForm() {
         e.preventDefault();
         if (!title || !amount) return;
 
-        addExpense({
+        const result = addExpense({
             title,
             amount: parseFloat(amount),
-            category: isTransfer ? 'Transfer/Payment' : category,
+            category: txnType === 'transfer' ? 'Transfer/Payment' : category,
             date,
-            type: isTransfer ? 'transfer' : 'expense'
+            type: txnType,
+            accountId
         });
+
+        if (result && !result.success) {
+            alert(result.message);
+            return;
+        }
 
         setTitle('');
         setAmount('');
         setWarning(null);
-        if (isTransfer) setIsTransfer(false);
+        // Only reset to expense if it was a transfer or refund (which are usually one-offs)
+        if (txnType === 'transfer' || txnType === 'refund') setTxnType('expense');
+
+        alert(`${txnType.charAt(0).toUpperCase() + txnType.slice(1)} added successfully!`);
     };
 
     return (
@@ -150,24 +164,47 @@ function ExpenseForm() {
                 <div className="form-toggle">
                     <button
                         type="button"
-                        className={`toggle-btn ${!isTransfer ? 'active' : ''}`}
-                        onClick={() => setIsTransfer(false)}
+                        className={`toggle-btn ${txnType === 'expense' ? 'active' : ''}`}
+                        onClick={() => {
+                            setTxnType('expense');
+                            setCategory('Food');
+                        }}
                     >
                         Expense
                     </button>
                     <button
                         type="button"
-                        className={`toggle-btn ${isTransfer ? 'active' : ''}`}
-                        onClick={() => setIsTransfer(true)}
+                        className={`toggle-btn ${txnType === 'income' ? 'active' : ''}`}
+                        onClick={() => {
+                            setTxnType('income');
+                            setCategory('Salary');
+                        }}
                     >
-                        Payment / Transfer
+                        Income
+                    </button>
+                    <button
+                        type="button"
+                        className={`toggle-btn ${txnType === 'transfer' ? 'active' : ''}`}
+                        onClick={() => setTxnType('transfer')}
+                    >
+                        Transfer
+                    </button>
+                    <button
+                        type="button"
+                        className={`toggle-btn ${txnType === 'refund' ? 'active' : ''}`}
+                        onClick={() => {
+                            setTxnType('refund');
+                            setCategory('Lent to Friend');
+                        }}
+                    >
+                        Refund
                     </button>
                 </div>
 
                 <div className="form-group">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label htmlFor="title">{isTransfer ? 'Pay To (UPI ID or Name)' : 'Title'}</label>
-                        {isTransfer && (
+                        <label htmlFor="title">{txnType === 'transfer' ? 'Pay To (UPI ID or Name)' : 'Title'}</label>
+                        {txnType === 'transfer' && (
                             <button
                                 type="button"
                                 className="btn-text"
@@ -183,13 +220,13 @@ function ExpenseForm() {
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder={isTransfer ? "e.g. merchant@upi" : "What did you spend on?"}
+                        placeholder={txnType === 'transfer' ? "e.g. merchant@upi" : txnType === 'income' ? "e.g. Salary, Gift" : txnType === 'refund' ? "e.g. Lent to John" : "What did you spend on?"}
                         required
                     />
                 </div>
 
                 {/* Receiver Preview Logic (Keep Existing Code) */}
-                {isTransfer && title.includes('@') && amount > 0 && (
+                {txnType === 'transfer' && title.includes('@') && amount > 0 && (
                     <div className="upi-preview" style={{ textAlign: 'center', margin: '1rem 0', background: 'white', padding: '1rem', borderRadius: '8px' }}>
                         <QRCodeCanvas
                             value={`upi://pay?pa=${title}&pn=Merchant&am=${amount}&cu=INR`}
@@ -222,7 +259,7 @@ function ExpenseForm() {
                             className={warning ? 'input-warning' : ''}
                         />
                     </div>
-                    {!isTransfer && (
+                    {txnType !== 'transfer' && (
                         <div className="form-group">
                             <label htmlFor="category">Category</label>
                             <select
@@ -230,7 +267,11 @@ function ExpenseForm() {
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
                             >
-                                {categories.map(cat => (
+                                {txnType === 'expense' ? categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                )) : txnType === 'income' ? INCOME_CATEGORIES.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                )) : REFUND_CATEGORIES.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
@@ -245,7 +286,33 @@ function ExpenseForm() {
                 )}
 
                 <div className="form-group">
-                    <label htmlFor="date">Date</label>
+                    <label>Payment Account</label>
+                    <div className="account-selector" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {accounts.map(acc => (
+                            <button
+                                key={acc.id}
+                                type="button"
+                                className={`account-chip ${accountId === acc.id ? 'active' : ''}`}
+                                onClick={() => setAccountId(acc.id)}
+                                style={{
+                                    border: `1px solid ${accountId === acc.id ? acc.color : 'var(--border-color)'}`,
+                                    color: accountId === acc.id ? acc.color : 'var(--text-muted)',
+                                    background: accountId === acc.id ? `${acc.color}15` : 'transparent',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '20px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {acc.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="date">Transaction Date</label>
                     <input
                         type="date"
                         id="date"
@@ -254,8 +321,8 @@ function ExpenseForm() {
                         required
                     />
                 </div>
-                <button type="submit" className={`btn-primary ${isTransfer ? 'btn-transfer' : ''}`}>
-                    {isTransfer ? 'Make Transfer' : 'Add Expense'}
+                <button type="submit" className={`btn-primary ${txnType === 'transfer' ? 'btn-transfer' : txnType === 'income' ? 'btn-income' : txnType === 'refund' ? 'btn-refund' : ''}`}>
+                    {txnType === 'transfer' ? 'Make Transfer' : txnType === 'income' ? 'Add Income' : txnType === 'refund' ? 'Track Refund' : 'Add Expense'}
                 </button>
             </form>
         </>
