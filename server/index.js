@@ -5,9 +5,15 @@ import bodyParser from 'body-parser';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = 5000;
-const JWT_SECRET = 'your-super-secret-key-123'; // In production, use env variable
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-123';
 
 // Middleware
 app.use(cors());
@@ -196,6 +202,14 @@ app.delete('/api/expenses/:id', authenticateToken, (req, res) => {
     });
 });
 
+// --- Serve Frontend Static Files ---
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Catch-all to serve React app
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

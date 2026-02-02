@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext';
 
 const ExpenseContext = createContext();
 
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
+
 const DEFAULT_CATEGORIES = ['Food', 'Transport', 'Entertainment', 'Health', 'Bills', 'Shopping', 'Other'];
 
 export const ExpenseProvider = ({ children }) => {
@@ -26,9 +28,9 @@ export const ExpenseProvider = ({ children }) => {
                 try {
                     const headers = { 'Authorization': `Bearer ${token}` };
                     const [expRes, accRes, goalRes] = await Promise.all([
-                        fetch('http://localhost:5000/api/expenses', { headers }),
-                        fetch('http://localhost:5000/api/accounts', { headers }),
-                        fetch('http://localhost:5000/api/goals', { headers })
+                        fetch(`${API_BASE}/api/expenses`, { headers }),
+                        fetch(`${API_BASE}/api/accounts`, { headers }),
+                        fetch(`${API_BASE}/api/goals`, { headers })
                     ]);
 
                     const expData = await expRes.json();
@@ -121,7 +123,7 @@ export const ExpenseProvider = ({ children }) => {
             }));
 
             // Sync with Server
-            fetch('http://localhost:5000/api/expenses', {
+            fetch(`${API_BASE}/api/expenses`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -137,7 +139,7 @@ export const ExpenseProvider = ({ children }) => {
                 if (expense.type === 'income') finalBalance += expense.amount;
                 else finalBalance -= expense.amount;
 
-                fetch(`http://localhost:5000/api/accounts/${accountId}`, {
+                fetch(`${API_BASE}/api/accounts/${accountId}`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -159,7 +161,7 @@ export const ExpenseProvider = ({ children }) => {
         if (!token) return;
         const newGoal = { id: generateId(), current: 0, ...goal };
         setGoals(prev => [...prev, newGoal]);
-        await fetch('http://localhost:5000/api/goals', {
+        await fetch(`${API_BASE}/api/goals`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -184,7 +186,7 @@ export const ExpenseProvider = ({ children }) => {
         setGoals(prev => prev.map(g => {
             if (g.id === goalId) {
                 const newCurrent = g.current + amount;
-                fetch(`http://localhost:5000/api/goals/${goalId}`, {
+                fetch(`${API_BASE}/api/goals/${goalId}`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -204,7 +206,7 @@ export const ExpenseProvider = ({ children }) => {
             acc.id === accountId ? { ...acc, balance: parseFloat(newBalance) } : acc
         ));
 
-        await fetch(`http://localhost:5000/api/accounts/${accountId}`, {
+        await fetch(`${API_BASE}/api/accounts/${accountId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -241,7 +243,7 @@ export const ExpenseProvider = ({ children }) => {
         if (!token) return;
         setExpenses(prev => prev.filter(e => e.id !== id));
 
-        fetch(`http://localhost:5000/api/expenses/${id}`, {
+        fetch(`${API_BASE}/api/expenses/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         }).catch(err => console.error("Failed to delete expense:", err));
