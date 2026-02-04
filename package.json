@@ -22,12 +22,12 @@
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.11",
+    "pg": "^8.18.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.13.0",
     "recharts": "^3.7.0",
-    "sqlite3": "^5.1.7",
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
