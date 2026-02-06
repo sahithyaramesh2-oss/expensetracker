@@ -13,7 +13,7 @@ export const ExpenseProvider = ({ children }) => {
     const { token, user } = useAuth();
     const userId = user?.id || 'guest';
 
-    // Budget: limit (total monthly budget), reserved (amount set aside for EMIs/Essentials)
+    // Budget: limit, reserved
     const [budget, setBudget] = useLocalStorage(`budget_${userId}`, { limit: 0, reserved: 0 });
 
     // Expenses State (Fetched from API)
@@ -37,9 +37,9 @@ export const ExpenseProvider = ({ children }) => {
                     const accData = await accRes.json();
                     const goalData = await goalRes.json();
 
-                    setExpenses(expData.data || []);
-                    setAccounts(accData.data || []);
-                    setGoals(goalData.data || []);
+                    setExpenses((expData.data || []).map(e => ({ ...e, amount: Number(e.amount) })));
+                    setAccounts((accData.data || []).map(a => ({ ...a, balance: Number(a.balance) })));
+                    setGoals((goalData.data || []).map(g => ({ ...g, target: Number(g.target), current: Number(g.current) })));
                 } catch (err) {
                     console.error("Failed to fetch data:", err);
                 }
@@ -116,7 +116,7 @@ export const ExpenseProvider = ({ children }) => {
                 if (acc.id === accountId) {
                     let newBalance = acc.balance;
                     if (expense.type === 'income') newBalance += expense.amount;
-                    else newBalance -= expense.amount; // expense, refund, transfer
+                    else newBalance -= expense.amount; // expense, lent, transfer
                     return { ...acc, balance: newBalance };
                 }
                 return acc;
@@ -272,16 +272,16 @@ export const ExpenseProvider = ({ children }) => {
                 const d = new Date(e.date);
                 return e.type === 'income' && d.getMonth() === currentMonth && d.getFullYear() === headersYear;
             })
-            .reduce((sum, e) => sum + e.amount, 0);
+            .reduce((sum, e) => sum + Number(e.amount), 0);
 
         // Total spent this month (only expenses and transfers)
         const monthlySpent = expenses
             .filter(e => {
                 const d = new Date(e.date);
-                return (e.type === 'expense' || e.type === 'transfer' || e.type === 'refund') &&
+                return (e.type === 'expense' || e.type === 'transfer' || e.type === 'lent') &&
                     d.getMonth() === currentMonth && d.getFullYear() === headersYear;
             })
-            .reduce((sum, e) => sum + e.amount, 0);
+            .reduce((sum, e) => sum + Number(e.amount), 0);
 
         const totalAfterExpense = monthlySpent + amount;
         const availableToSpend = monthlyIncome - budget.reserved;
@@ -296,9 +296,34 @@ export const ExpenseProvider = ({ children }) => {
         return { isSafe: true, message: "Safe to spend." };
     };
 
-    const pendingRefunds = expenses
-        .filter(e => e.type === 'refund')
-        .reduce((sum, e) => sum + e.amount, 0);
+    const totals = useMemo(() => {
+        // Calculate Net Balance strictly from account balances
+        const netBalance = accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
+
+        // Calculate Pending Lent
+        // Lent = Money given out (increases pending)
+        // Income (Refund/Lent Return) = Money received back (decreases pending)
+        const pendingLent = expenses.reduce((sum, e) => {
+            if (e.type === 'lent') return sum + Number(e.amount);
+            if (e.type === 'income' && (e.category === 'Refund' || e.category === 'Lent Return')) {
+                return sum - Number(e.amount);
+            }
+            return sum;
+        }, 0);
+
+        return {
+            netBalance,
+            pendingLent: Math.max(0, pendingLent) // Ensure not negative
+        };
+    }, [accounts, expenses]);
+
+    // Pending Refunds (Money lent out that hasn't been returned yet)
+    // Lent increases pending, Income with category 'Refund' decreases pending
+    const pendingRefunds = expenses.reduce((sum, e) => {
+        if (e.type === 'lent') return sum + Number(e.amount);
+        if (e.type === 'income' && e.category === 'Refund') return sum - Number(e.amount);
+        return sum;
+    }, 0);
 
     const exportData = () => {
         const data = { expenses, budget, categories, subscriptions };
@@ -339,9 +364,11 @@ export const ExpenseProvider = ({ children }) => {
             goals,
             addGoal,
             contributeToGoal,
-            updateAccountBalance
+            updateAccountBalance,
+            getAccountBalance: (id) => accounts.find(a => a.id === id)?.balance || 0,
+            ...totals
         }),
-        [expenses, budget, categories, subscriptions, userSettings, pendingRefunds, accounts, goals]
+        [expenses, budget, categories, subscriptions, userSettings, accounts, goals, totals]
     );
 
     return <ExpenseContext.Provider value={value}>{children}</ExpenseContext.Provider>;

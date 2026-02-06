@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -121,7 +122,11 @@ app.post('/api/auth/register', async (req, res) => {
 
         res.json({ message: "User registered successfully" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Registration error:", err);
+        if (err.code === 'ECONNREFUSED' || err.message.includes('timeout')) {
+            return res.status(503).json({ error: "Database connection failed. Please try again later." });
+        }
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
@@ -131,15 +136,19 @@ app.post('/api/auth/login', async (req, res) => {
         const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const user = result.rows[0];
 
-        if (!user) return res.status(400).json({ error: "User not found" });
+        if (!user) return res.status(401).json({ error: "Invalid email or password" });
 
         const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) return res.status(400).json({ error: "Invalid password" });
+        if (!validPassword) return res.status(401).json({ error: "Invalid email or password" });
 
         const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET);
         res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Login error:", err);
+        if (err.code === 'ECONNREFUSED' || err.message.includes('timeout')) {
+            return res.status(503).json({ error: "Database connection failed. Please try again later." });
+        }
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
@@ -237,11 +246,12 @@ app.get('/api/expenses', authenticateToken, async (req, res) => {
 app.post('/api/expenses', authenticateToken, async (req, res) => {
     const { id, title, amount, category, date, type, accountId, createdAt } = req.body;
     try {
+        const positiveAmount = Math.abs(parseFloat(amount));
         await pool.query(
             "INSERT INTO expenses (id, userId, title, amount, category, date, type, accountId, createdAt) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-            [id, req.user.id, title, amount, category, date, type, accountId, createdAt]
+            [id, req.user.id, title, positiveAmount, category, date, type, accountId, createdAt]
         );
-        res.json({ "message": "success", "data": req.body });
+        res.json({ "message": "success", "data": { ...req.body, amount: positiveAmount } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

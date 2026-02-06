@@ -16,9 +16,9 @@ function ExpenseList() {
             <h3>Recent Transactions</h3>
             <div className="list-container">
                 {sortedExpenses.map((expense) => (
-                    <div key={expense.id} className={`expense-item ${expense.type === 'transfer' ? 'item-transfer' : expense.type === 'income' ? 'item-income' : expense.type === 'refund' ? 'item-refund' : ''}`}>
+                    <div key={expense.id} className={`expense-item ${expense.type === 'transfer' ? 'item-transfer' : expense.type === 'income' ? 'item-income' : expense.type === 'lent' ? 'item-lent' : ''}`}>
                         <div className="expense-icon">
-                            {expense.type === 'transfer' ? '↗' : expense.type === 'income' ? '↙' : expense.type === 'refund' ? '⏳' : '🛍️'}
+                            {expense.type === 'transfer' ? '↗' : expense.type === 'income' ? '↙' : expense.type === 'lent' ? '🤝' : '🛍️'}
                         </div>
                         <div className="expense-details">
                             <span className="expense-date">{new Date(expense.date).toLocaleDateString()}</span>
@@ -54,10 +54,10 @@ function ExpenseList() {
                         </div>
                         <div className="expense-actions">
                             <span className="expense-amount" style={{
-                                color: expense.type === 'income' ? 'var(--success)' : expense.type === 'refund' ? '#FFA000' : expense.type === 'transfer' ? '#fff' : 'var(--text-main)',
+                                color: expense.type === 'income' ? 'var(--success)' : expense.type === 'lent' ? '#9C27B0' : expense.type === 'transfer' ? '#fff' : 'var(--text-main)',
                                 fontSize: '1.2rem'
                             }}>
-                                {expense.type === 'income' ? '+' : expense.type === 'refund' ? '−' : '−'}{formatCurrency(expense.amount)}
+                                {expense.type === 'income' ? '+' : '−'}{formatCurrency(expense.amount)}
                             </span>
                             <button
                                 className="btn-icon delete-btn"

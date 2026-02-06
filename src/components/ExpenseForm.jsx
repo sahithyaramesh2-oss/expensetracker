@@ -16,7 +16,7 @@ function ExpenseForm() {
     const [showScanner, setShowScanner] = useState(false);
     const [paymentModalData, setPaymentModalData] = useState(null);
 
-    const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Cashback', 'Other'];
+    const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Lent Return', 'Cashback', 'Other'];
     const REFUND_CATEGORIES = ['Lent to Friend', 'Product Return', 'Security Deposit', 'Loan', 'Other'];
 
     // Parse UPI URL
@@ -142,7 +142,7 @@ function ExpenseForm() {
         setAmount('');
         setWarning(null);
         // Only reset to expense if it was a transfer or refund (which are usually one-offs)
-        if (txnType === 'transfer' || txnType === 'refund') setTxnType('expense');
+        if (txnType === 'transfer' || txnType === 'lent') setTxnType('expense');
 
         alert(`${txnType.charAt(0).toUpperCase() + txnType.slice(1)} added successfully!`);
     };
@@ -191,13 +191,13 @@ function ExpenseForm() {
                     </button>
                     <button
                         type="button"
-                        className={`toggle-btn ${txnType === 'refund' ? 'active' : ''}`}
+                        className={`toggle-btn ${txnType === 'lent' ? 'active' : ''}`}
                         onClick={() => {
-                            setTxnType('refund');
+                            setTxnType('lent');
                             setCategory('Lent to Friend');
                         }}
                     >
-                        Refund
+                        Lent
                     </button>
                 </div>
 
@@ -220,7 +220,7 @@ function ExpenseForm() {
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder={txnType === 'transfer' ? "e.g. merchant@upi" : txnType === 'income' ? "e.g. Salary, Gift" : txnType === 'refund' ? "e.g. Lent to John" : "What did you spend on?"}
+                        placeholder={txnType === 'transfer' ? "e.g. merchant@upi" : txnType === 'income' ? "e.g. Salary, Gift" : txnType === 'lent' ? "e.g. Lent to John" : "What did you spend on?"}
                         required
                     />
                 </div>
@@ -321,8 +321,8 @@ function ExpenseForm() {
                         required
                     />
                 </div>
-                <button type="submit" className={`btn-primary ${txnType === 'transfer' ? 'btn-transfer' : txnType === 'income' ? 'btn-income' : txnType === 'refund' ? 'btn-refund' : ''}`}>
-                    {txnType === 'transfer' ? 'Make Transfer' : txnType === 'income' ? 'Add Income' : txnType === 'refund' ? 'Track Refund' : 'Add Expense'}
+                <button type="submit" className={`btn-primary ${txnType === 'transfer' ? 'btn-transfer' : txnType === 'income' ? 'btn-income' : txnType === 'lent' ? 'btn-lent' : ''}`}>
+                    {txnType === 'transfer' ? 'Make Transfer' : txnType === 'income' ? 'Add Income' : txnType === 'lent' ? 'Track Lent' : 'Add Expense'}
                 </button>
             </form>
         </>

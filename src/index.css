@@ -534,9 +534,9 @@ select:focus {
     background: rgba(0, 230, 118, 0.05);
 }
 
-.item-refund {
-    border-left: 3px solid #FFA000;
-    background: rgba(255, 160, 0, 0.05);
+.item-lent {
+    border-left: 3px solid #9C27B0;
+    background: rgba(156, 39, 176, 0.05);
 }
 
 .btn-transfer {
@@ -549,9 +549,9 @@ select:focus {
     box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
 }
 
-.btn-refund {
-    background: linear-gradient(135deg, #FFB300 0%, #FFA000 100%);
-    box-shadow: 0 4px 15px rgba(255, 160, 0, 0.4);
+.btn-lent {
+    background: linear-gradient(135deg, #AB47BC 0%, #9C27B0 100%);
+    box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
 }
 
 .expense-item:hover {
